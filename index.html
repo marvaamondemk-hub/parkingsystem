@@ -1,0 +1,202 @@
+const express = require('express');
+const nodemailer = require('nodemailer');
+const cors = require('cors');
+require('dotenv').config();
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.use(cors());
+app.use(express.json());
+
+// Configurar transporter de Nodemailer con Gmail
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: 'iellowmar@gmail.com',
+    pass: 'rljt uxzi wbtk qqyf' // Contraseña de aplicación
+  }
+});
+
+// Verificar conexión
+transporter.verify((error, success) => {
+  if (error) {
+    console.log('❌ Error en configuración de email:', error);
+  } else {
+    console.log('✅ Servidor de email listo para enviar mensajes');
+  }
+});
+
+// Ruta para enviar recordatorio de plaza
+app.post('/api/send-reminder', async (req, res) => {
+  try {
+    const { usuario, plaza, planta, fecha, email } = req.body;
+
+    const mailOptions = {
+      from: 'iellowmar@gmail.com',
+      to: email || 'iellowmar@gmail.com',
+      subject: `🅿️ Recordatorio - Sistema de Parkings`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <style>
+            body { font-family: Arial, sans-serif; background: #f5f5f5; }
+            .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; }
+            .header { background: #2563eb; color: white; padding: 20px; border-radius: 8px 8px 0 0; text-align: center; }
+            .content { padding: 20px; }
+            .info-box { background: #f0f9ff; border-left: 4px solid #2563eb; padding: 15px; margin: 15px 0; }
+            .buttons { display: flex; gap: 10px; margin-top: 20px; }
+            .btn { padding: 12px 20px; border-radius: 6px; text-decoration: none; font-weight: bold; text-align: center; flex: 1; }
+            .btn-confirm { background: #10b981; color: white; }
+            .btn-cancel { background: #ef4444; color: white; }
+            .footer { text-align: center; color: #666; font-size: 12px; margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>🅿️ Sistema de Gestión de Parkings</h1>
+            </div>
+            <div class="content">
+              <h2>Hola ${usuario},</h2>
+              <p>Te recordamos que <strong>mañana (${fecha})</strong> tienes reservada una plaza de garaje.</p>
+              
+              <div class="info-box">
+                <p><strong>Plaza:</strong> ${plaza}</p>
+                <p><strong>Planta:</strong> ${planta}</p>
+                <p><strong>Fecha:</strong> ${fecha}</p>
+              </div>
+
+              <p>Si no tienes previsto hacer uso de ella, puedes liberarla haciendo clic en el botón de abajo. Esto permitirá que otro compañero pueda usar esa plaza.</p>
+
+              <div class="buttons">
+                <a href="https://parking-system-demo.vercel.app?action=confirm&plaza=${plaza}" class="btn btn-confirm">✅ Confirmar Asistencia</a>
+                <a href="https://parking-system-demo.vercel.app?action=liberar&plaza=${plaza}" class="btn btn-cancel">❌ Liberar Plaza</a>
+              </div>
+
+              <p style="margin-top: 20px; color: #666;">Si los botones no funcionan, responde este email con "CONFIRMAR" o "LIBERAR".</p>
+            </div>
+            <div class="footer">
+              <p>Sistema de Gestión de Parkings Inteligente</p>
+              <p>© 2025 - Todos los derechos reservados</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log('✅ Email enviado:', info.messageId);
+    
+    res.json({ 
+      success: true, 
+      message: `Recordatorio enviado a ${email || 'iellowmar@gmail.com'}`,
+      messageId: info.messageId 
+    });
+
+  } catch (error) {
+    console.error('❌ Error al enviar email:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error al enviar email',
+      error: error.message 
+    });
+  }
+});
+
+// Ruta para enviar confirmación de plaza asignada
+app.post('/api/send-assignment', async (req, res) => {
+  try {
+    const { usuario, plaza, planta, fecha, email } = req.body;
+
+    const mailOptions = {
+      from: 'iellowmar@gmail.com',
+      to: email || 'iellowmar@gmail.com',
+      subject: `✅ Plaza Asignada - Sistema de Parkings`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <style>
+            body { font-family: Arial, sans-serif; background: #f5f5f5; }
+            .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; }
+            .header { background: #10b981; color: white; padding: 20px; border-radius: 8px 8px 0 0; text-align: center; }
+            .content { padding: 20px; }
+            .success-box { background: #ecfdf5; border-left: 4px solid #10b981; padding: 15px; margin: 15px 0; }
+            .plaza-info { font-size: 18px; font-weight: bold; color: #2563eb; padding: 15px; background: #f0f9ff; border-radius: 6px; text-align: center; margin: 15px 0; }
+            .footer { text-align: center; color: #666; font-size: 12px; margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>✅ Plaza Asignada</h1>
+            </div>
+            <div class="content">
+              <h2>¡Hola ${usuario}!</h2>
+              <p>Te comunicamos que se te ha asignado una plaza de garaje.</p>
+              
+              <div class="success-box">
+                <p>Tu plaza está confirmada para:</p>
+              </div>
+
+              <div class="plaza-info">
+                Plaza <strong>${plaza}</strong> | Planta <strong>${planta}</strong><br>
+                Fecha: <strong>${fecha}</strong>
+              </div>
+
+              <p>Por favor, confirma tu asistencia para que podamos tener un registro actualizado.</p>
+
+              <div style="text-align: center; margin-top: 30px;">
+                <a href="https://parking-system-demo.vercel.app" style="display: inline-block; padding: 12px 30px; background: #2563eb; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">Ir al Sistema</a>
+              </div>
+
+              <p style="margin-top: 20px; color: #666;">Si tienes cualquier duda, contacta con administración.</p>
+            </div>
+            <div class="footer">
+              <p>Sistema de Gestión de Parkings Inteligente</p>
+              <p>© 2025 - Todos los derechos reservados</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log('✅ Email de asignación enviado:', info.messageId);
+    
+    res.json({ 
+      success: true, 
+      message: `Confirmación enviada a ${email || 'iellowmar@gmail.com'}`,
+      messageId: info.messageId 
+    });
+
+  } catch (error) {
+    console.error('❌ Error al enviar email:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error al enviar email',
+      error: error.message 
+    });
+  }
+});
+
+// Ruta de prueba
+app.get('/api/test', (req, res) => {
+  res.json({ 
+    message: '✅ Backend funcionando correctamente',
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Iniciar servidor
+app.listen(PORT, () => {
+  console.log(`🚀 Servidor ejecutándose en puerto ${PORT}`);
+  console.log(`📧 Email configurado: iellowmar@gmail.com`);
+  console.log(`🌐 API disponible en http://localhost:${PORT}`);
+});

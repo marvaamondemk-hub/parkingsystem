@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Gestión de Parkings - Con Notificaciones por Email</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1e40af;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --bg-light: #f9fafb;
+            --bg-white: #ffffff;
+            --text-dark: #1f2937;
+            --text-light: #6b7280;
+            --border: #e5e7eb;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-light);
+            color: var(--text-dark);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background: var(--bg-white);
+            border-bottom: 1px solid var(--border);
+            padding: 20px 0;
+            margin-bottom: 30px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 10px;
+        }
+
+        .tab-btn {
+            padding: 8px 16px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 14px;
+            border-radius: 6px;
+            transition: all 0.3s;
+            color: var(--text-light);
+        }
+
+        .tab-btn.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .content {
+            display: none;
+        }
+
+        .content.active {
+            display: block;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: var(--bg-white);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .metric-card {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--primary);
+            margin: 10px 0;
+        }
+
+        .metric-label {
+            font-size: 13px;
+            color: var(--text-light);
+            text-transform: uppercase;
+        }
+
+        .planta-section {
+            margin-bottom: 30px;
+        }
+
+        .planta-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--primary);
+        }
+
+        .parking-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+            gap: 12px;
+        }
+
+        .parking-slot {
+            aspect-ratio: 1.1;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+            font-size: 13px;
+            position: relative;
+        }
+
+        .parking-slot:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .parking-slot.fixed {
+            background: #e0f2fe;
+            border-color: #0284c7;
+            color: #0c4a6e;
+        }
+
+        .parking-slot.available {
+            background: #dcfce7;
+            border-color: #16a34a;
+            color: #166534;
+        }
+
+        .parking-slot.reserved {
+            background: #fef3c7;
+            border-color: #eab308;
+            color: #854d0e;
+        }
+
+        .slot-number {
+            font-size: 16px;
+        }
+
+        .slot-user {
+            font-size: 10px;
+            margin-top: 2px;
+        }
+
+        .slot-badge {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            font-size: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+        }
+
+        .legend {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            font-size: 13px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .legend-box {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            border: 2px solid;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        th {
+            background: var(--bg-light);
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid var(--border);
+            color: var(--text-dark);
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        tr:hover {
+            background: var(--bg-light);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .badge.fixed {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .badge.available {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+
+        .badge.reserved {
+            background: #fef3c7;
+            color: #854d0e;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: var(--text-dark);
+            font-size: 13px;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 13px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--bg-white);
+            border-radius: 8px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+
+        .modal-header {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: var(--primary);
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            justify-content: flex-end;
+        }
+
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--success);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 6px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            animation: slideIn 0.3s ease-out;
+            z-index: 2000;
+            max-width: 300px;
+            font-size: 13px;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .waiting-list {
+            background: var(--bg-light);
+            border-left: 4px solid var(--warning);
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            font-size: 13px;
+        }
+
+        .email-test {
+            background: #fef3c7;
+            border: 1px solid #fcd34d;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        h3 {
+            color: var(--primary);
+            font-size: 14px;
+            margin-bottom: 10px;
+            margin-top: 15px;
+        }
+
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <div>
+                <h1>🅿️ Sistema de Gestión de Parkings - CON EMAIL REAL</h1>
+            </div>
+            <div class="nav-tabs">
+                <button class="tab-btn active" onclick="switchTab('dashboard')">Dashboard</button>
+                <button class="tab-btn" onclick="switchTab('reserve')">Reservar</button>
+                <button class="tab-btn" onclick="switchTab('test')">Test Email</button>
+                <button class="tab-btn" onclick="switchTab('history')">Histórico</button>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- DASHBOARD TAB -->
+        <div id="dashboard" class="content active">
+            <div class="grid">
+                <div class="card metric-card">
+                    <div class="metric-label">Plazas Disponibles</div>
+                    <div class="metric-value" id="available-count">10</div>
+                </div>
+                <div class="card metric-card">
+                    <div class="metric-label">Plazas Reservadas</div>
+                    <div class="metric-value" id="reserved-count">6</div>
+                </div>
+                <div class="card metric-card">
+                    <div class="metric-label">Plazas Fijas</div>
+                    <div class="metric-value" id="fixed-count">5</div>
+                </div>
+                <div class="card metric-card">
+                    <div class="metric-label">En Lista de Espera</div>
+                    <div class="metric-value" id="waiting-count">0</div>
+                </div>
+                <div class="card metric-card">
+                    <div class="metric-label">Ocupación Total</div>
+                    <div class="metric-value" id="occupation-percent">52%</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-box" style="background: #e0f2fe; border-color: #0284c7;"></div>
+                        <span>Plaza Fija</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-box" style="background: #dcfce7; border-color: #16a34a;"></div>
+                        <span>Disponible</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-box" style="background: #fef3c7; border-color: #eab308;"></div>
+                        <span>Reservada</span>
+                    </div>
+                </div>
+
+                <!-- PLANTA -1 -->
+                <div class="planta-section">
+                    <div class="planta-title">🏢 Planta -1</div>
+                    <div class="parking-grid" id="planta-1"></div>
+                </div>
+
+                <!-- PLANTA -2 -->
+                <div class="planta-section">
+                    <div class="planta-title">🏢 Planta -2</div>
+                    <div class="parking-grid" id="planta-2"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 style="margin-bottom: 15px; color: var(--primary); font-size: 16px;">Resumen de Hoy</h2>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Plaza</th>
+                                <th>Planta</th>
+                                <th>Tipo</th>
+                                <th>Usuario</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="today-summary"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- RESERVE TAB -->
+        <div id="reserve" class="content">
+            <div class="grid">
+                <div class="card">
+                    <h2 style="margin-bottom: 15px; color: var(--primary); font-size: 16px;">Hacer Reserva</h2>
+                    <div class="form-group">
+                        <label>Nombre Completo</label>
+                        <input type="text" id="user-name" placeholder="Ej: Juan García">
+                    </div>
+                    <div class="form-group">
+                        <label>Email (para notificaciones)</label>
+                        <input type="email" id="user-email" placeholder="tu@email.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Fecha de Reserva</label>
+                        <input type="date" id="reserve-date" min="">
+                    </div>
+                    <button class="btn btn-primary" onclick="makeReservation()" style="width: 100%; margin-top: 10px;">Hacer Reserva</button>
+                </div>
+
+                <div class="card">
+                    <h2 style="margin-bottom: 15px; color: var(--primary); font-size: 16px;">Lista de Espera Actual</h2>
+                    <div id="waiting-list-display"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 style="margin-bottom: 15px; color: var(--primary); font-size: 16px;">Mis Reservas</h2>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Plaza</th>
+                                <th>Planta</th>
+                                <th>Email</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="my-reservations"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TEST EMAIL TAB -->
+        <div id="test" class="content">
+            <div class="card">
+                <h2 style="margin-bottom: 20px; color: var(--primary); font-size: 16px;">📧 Prueba de Notificaciones por Email</h2>
+                
+                <div class="email-test">
+                    <strong>ℹ️ Información:</strong><br>
+                    <small>Aquí puedes probar el sistema de notificaciones por email real. Se enviará un email a tu dirección.</small>
+                </div>
+
+                <h3>1️⃣ Enviar Recordatorio (Día anterior)</h3>
+                <div style="background: var(--bg-light); padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+                    <div class="form-group">
+                        <label>Tu Email</label>
+                        <input type="email" id="test-email" placeholder="tu@email.com" value="iellowmar@gmail.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Selecciona una plaza</label>
+                        <select id="test-plaza">
+                            <option value="20">Plaza 20 (Planta -1)</option>
+                            <option value="36">Plaza 36 (Planta -2)</option>
+                            <option value="70">Plaza 70 (Planta -2)</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-warning" onclick="sendTestReminder()" style="width: 100%;">📧 Enviar Recordatorio de Prueba</button>
+                </div>
+
+                <h3>2️⃣ Enviar Confirmación de Asignación</h3>
+                <div style="background: var(--bg-light); padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+                    <div class="form-group">
+                        <label>Tu Email</label>
+                        <input type="email" id="test-email-2" placeholder="tu@email.com" value="iellowmar@gmail.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Selecciona una plaza</label>
+                        <select id="test-plaza-2">
+                            <option value="16">Plaza 16 (Planta -1)</option>
+                            <option value="71">Plaza 71 (Planta -2)</option>
+                            <option value="78">Plaza 78 (Planta -2)</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-success" onclick="sendTestAssignment()" style="width: 100%;">✅ Enviar Confirmación de Asignación</button>
+                </div>
+
+                <h3>📝 Resultado</h3>
+                <div id="test-result" style="background: var(--bg-light); padding: 15px; border-radius: 6px; display: none;">
+                    <div id="result-message"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- HISTORY TAB -->
+        <div id="history" class="content">
+            <div class="card">
+                <h2 style="margin-bottom: 15px; color: var(--primary); font-size: 16px;">Histórico de Plazas</h2>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Plaza</th>
+                                <th>Planta</th>
+                                <th>Usuario</th>
+                                <th>Tipo</th>
+                                <th>Estado Final</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-table"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Confirmación -->
+    <div class="modal" id="confirm-modal">
+        <div class="modal-content">
+            <div class="modal-header" id="modal-title">Confirmar Acción</div>
+            <p id="modal-message" style="margin-bottom: 20px; font-size: 14px;"></p>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeModal()" style="background: var(--border); color: var(--text-dark);">Cancelar</button>
+                <button class="btn btn-primary" onclick="confirmAction()">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // URL del backend (cambiar cuando esté en Render.com)
+        const BACKEND_URL = 'http://localhost:3000';
+
+        // Configuración de Plazas
+        const plazas = {
+            "-1": [13, 14, 15, 16, 17, 20],
+            "-2": [36, 68, 69, 70, 71, 72, 73, 77, 78, 79, 83]
+        };
+
+        const fixedUsers = {
+            13: 'Iñigo',
+            14: 'Maialen',
+            15: 'Marta',
+            68: 'Iñaki L',
+            69: 'Iñaki G'
+        };
+
+        const rotatingUsers = ['Juan García', 'María López', 'Carlos Rodríguez', 'Ana Martínez', 'Pedro Sánchez'];
+        
+        let reservations = {};
+        let waitingList = [];
+        let history = [];
+        let currentAction = null;
+
+        function initializeData() {
+            const today = new Date().toISOString().split('T')[0];
+            
+            reservations[today] = {};
+            
+            Object.keys(fixedUsers).forEach(plazaId => {
+                const plaza = parseInt(plazaId);
+                reservations[today][plaza] = {
+                    user: fixedUsers[plazaId],
+                    type: 'fija',
+                    status: 'ocupada',
+                    email: 'iellowmar@gmail.com'
+                };
+            });
+            
+            const rotatingPlazas = Object.values(plazas).flat().filter(p => !fixedUsers[p]);
+            const reserved = [20, 36, 70, 71];
+            
+            reserved.forEach((plazaId, idx) => {
+                reservations[today][plazaId] = {
+                    user: rotatingUsers[idx] || 'Usuario',
+                    type: 'rotacion',
+                    status: 'reservada',
+                    email: 'iellowmar@gmail.com'
+                };
+            });
+            
+            rotatingPlazas.forEach(p => {
+                if (!reservations[today][p]) {
+                    reservations[today][p] = null;
+                }
+            });
+            
+            history = [
+                { date: '2025-05-20', slot: 16, planta: '-1', user: 'Pedro Sánchez', type: 'rotacion', status: 'liberada' },
+                { date: '2025-05-20', slot: 72, planta: '-2', user: 'Laura Fernández', type: 'rotacion', status: 'ocupada' },
+            ];
+        }
+
+        function getPlantaForPlaza(plaza) {
+            if (plazas["-1"].includes(plaza)) return "-1";
+            if (plazas["-2"].includes(plaza)) return "-2";
+            return "desconocida";
+        }
+
+        function updateDashboard() {
+            const today = new Date().toISOString().split('T')[0];
+            const todayRes = reservations[today] || {};
+            
+            let available = 0, reserved = 0, fixed = 5;
+            
+            Object.values(plazas).flat().forEach(plaza => {
+                if (!todayRes[plaza]) available++;
+                else if (todayRes[plaza] && todayRes[plaza].status === 'reservada') reserved++;
+            });
+            
+            const total = Object.values(plazas).flat().length;
+            const occupied = total - available;
+            
+            document.getElementById('available-count').textContent = available;
+            document.getElementById('reserved-count').textContent = reserved;
+            document.getElementById('fixed-count').textContent = fixed;
+            document.getElementById('waiting-count').textContent = waitingList.length;
+            document.getElementById('occupation-percent').textContent = Math.round(((occupied) / total) * 100) + '%';
+            
+            // Actualizar visualización por plantas
+            ["-1", "-2"].forEach(planta => {
+                const container = document.getElementById(`planta-${planta === "-1" ? "1" : "2"}`);
+                container.innerHTML = '';
+                
+                plazas[planta].forEach(plaza => {
+                    const slot = document.createElement('div');
+                    const res = todayRes[plaza];
+                    
+                    if (fixedUsers[plaza]) {
+                        slot.className = 'parking-slot fixed';
+                        slot.innerHTML = `
+                            <div class="slot-number">${plaza}</div>
+                            <div class="slot-user">${fixedUsers[plaza]}</div>
+                            <div class="slot-badge">F</div>
+                        `;
+                    } else if (res) {
+                        slot.className = 'parking-slot reserved';
+                        slot.innerHTML = `
+                            <div class="slot-number">${plaza}</div>
+                            <div class="slot-user">${res.user.split(' ')[0]}</div>
+                        `;
+                    } else {
+                        slot.className = 'parking-slot available';
+                        slot.innerHTML = `<div class="slot-number">${plaza}</div>`;
+                        slot.style.cursor = 'pointer';
+                    }
+                    container.appendChild(slot);
+                });
+            });
+            
+            // Actualizar resumen
+            const todaySummary = document.getElementById('today-summary');
+            todaySummary.innerHTML = '';
+            
+            Object.values(plazas).flat().sort((a,b) => a-b).forEach(plaza => {
+                const res = todayRes[plaza];
+                const planta = getPlantaForPlaza(plaza);
+                const row = document.createElement('tr');
+                
+                if (fixedUsers[plaza]) {
+                    row.innerHTML = `
+                        <td><strong>${plaza}</strong></td>
+                        <td>Planta ${planta}</td>
+                        <td><span class="badge fixed">Fija</span></td>
+                        <td>${fixedUsers[plaza]}</td>
+                        <td><span class="badge fixed">Asignada</span></td>
+                    `;
+                } else if (res) {
+                    row.innerHTML = `
+                        <td><strong>${plaza}</strong></td>
+                        <td>Planta ${planta}</td>
+                        <td><span class="badge">Rotación</span></td>
+                        <td>${res.user}</td>
+                        <td><span class="badge reserved">Reservada</span></td>
+                    `;
+                } else {
+                    row.innerHTML = `
+                        <td><strong>${plaza}</strong></td>
+                        <td>Planta ${planta}</td>
+                        <td><span class="badge">Rotación</span></td>
+                        <td>-</td>
+                        <td><span class="badge available">Disponible</span></td>
+                    `;
+                }
+                todaySummary.appendChild(row);
+            });
+        }
+
+        // Función para enviar email de recordatorio
+        async function sendTestReminder() {
+            const email = document.getElementById('test-email').value;
+            const plaza = document.getElementById('test-plaza').value;
+            const planta = getPlantaForPlaza(parseInt(plaza));
+            
+            if (!email) {
+                showNotification('Por favor ingresa tu email', 'error');
+                return;
+            }
+
+            showTestResult('Enviando email de recordatorio...');
+            
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/send-reminder`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        usuario: 'Usuario Prueba',
+                        plaza: plaza,
+                        planta: planta,
+                        fecha: '21/05/2025',
+                        email: email
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    showTestResult(`✅ Email enviado correctamente a ${email}. Revisa tu bandeja de entrada.`);
+                    showNotification('Email enviado exitosamente', 'success');
+                } else {
+                    showTestResult(`❌ Error: ${data.message}`);
+                }
+            } catch (error) {
+                showTestResult(`❌ Error de conexión: ${error.message}`);
+                console.error('Error:', error);
+            }
+        }
+
+        async function sendTestAssignment() {
+            const email = document.getElementById('test-email-2').value;
+            const plaza = document.getElementById('test-plaza-2').value;
+            const planta = getPlantaForPlaza(parseInt(plaza));
+            
+            if (!email) {
+                showNotification('Por favor ingresa tu email', 'error');
+                return;
+            }
+
+            showTestResult('Enviando email de asignación...');
+            
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/send-assignment`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        usuario: 'Usuario Prueba',
+                        plaza: plaza,
+                        planta: planta,
+                        fecha: '21/05/2025',
+                        email: email
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    showTestResult(`✅ Email enviado correctamente a ${email}. Revisa tu bandeja de entrada.`);
+                    showNotification('Email enviado exitosamente', 'success');
+                } else {
+                    showTestResult(`❌ Error: ${data.message}`);
+                }
+            } catch (error) {
+                showTestResult(`❌ Error de conexión: ${error.message}`);
+                console.error('Error:', error);
+            }
+        }
+
+        function showTestResult(message) {
+            const resultDiv = document.getElementById('test-result');
+            const messageDiv = document.getElementById('result-message');
+            messageDiv.innerHTML = message;
+            resultDiv.style.display = 'block';
+        }
+
+        function makeReservation() {
+            const name = document.getElementById('user-name').value;
+            const email = document.getElementById('user-email').value;
+            const date = document.getElementById('reserve-date').value;
+            
+            if (!name || !email || !date) {
+                showNotification('Por favor completa todos los campos', 'error');
+                return;
+            }
+            
+            waitingList.push({ name: name, email: email, date: date });
+            showNotification(`✓ ${name} añadido a lista de espera`, 'success');
+            
+            document.getElementById('user-name').value = '';
+            document.getElementById('user-email').value = '';
+            document.getElementById('reserve-date').value = '';
+            
+            updateDashboard();
+        }
+
+        function updateHistory() {
+            const historyTable = document.getElementById('history-table');
+            historyTable.innerHTML = '';
+            
+            history.forEach(item => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${item.date}</td>
+                    <td><strong>${item.slot}</strong></td>
+                    <td>Planta ${item.planta}</td>
+                    <td>${item.user}</td>
+                    <td><span class="badge">${item.type}</span></td>
+                    <td><span class="badge" style="background: ${item.status === 'liberada' ? '#dcfce7' : '#fef3c7'}; color: ${item.status === 'liberada' ? '#16a34a' : '#854d0e'};">${item.status}</span></td>
+                `;
+                historyTable.appendChild(row);
+            });
+        }
+
+        function switchTab(tab) {
+            document.querySelectorAll('.content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById(tab).classList.add('active');
+            event.target.classList.add('active');
+            
+            if (tab === 'history') updateHistory();
+        }
+
+        function showNotification(message, type = 'success') {
+            const notif = document.createElement('div');
+            notif.className = 'notification';
+            notif.textContent = message;
+            if (type === 'error') notif.style.background = '#ef4444';
+            document.body.appendChild(notif);
+            
+            setTimeout(() => notif.remove(), 3000);
+        }
+
+        function closeModal() {
+            document.getElementById('confirm-modal').classList.remove('active');
+        }
+
+        document.getElementById('reserve-date').min = new Date().toISOString().split('T')[0];
+        initializeData();
+        updateDashboard();
+    </script>
+</body>
+</html>
